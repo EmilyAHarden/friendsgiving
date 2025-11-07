@@ -36,48 +36,46 @@
           </p>
         </section>
 
-        <!-- Dish Sign-Up -->
-        <section class="signup card" aria-labelledby="signup-title">
-          <h2 id="signup-title">What are you bringing?</h2>
-          <form id="dish-form" novalidate>
-            <div class="form-grid">
-              <div class="form-field">
-                <label for="dishName">Dish Name</label>
-                <input id="dishName" name="dishName" type="text" placeholder="e.g., Stuffing" required />
-                <small class="help">Just the dish name + dietary tags below.</small>
-              </div>
+<!-- Dish Sign-Up -->
+<section class="signup card" aria-labelledby="signup-title">
+  <h2 id="signup-title">What are you bringing?</h2>
+  <form id="dish-form" novalidate>
+    <div class="form-grid">
+      <div class="form-field">
+        <label for="dishName">Dish Name</label>
+        <input id="dishName" name="dishName" type="text" placeholder="e.g., Stuffing" required />
+      </div>
 
-              <div class="form-field">
-                <label for="yourName">Guest Name</label>
-                <input id="yourName" name="yourName" type="text" placeholder="e.g., Emily Harden" required />
-              </div>
+      <div class="form-field">
+        <label for="yourName">Guest Name</label>
+        <input id="yourName" name="yourName" type="text" placeholder="e.g., Emily Harden" required />
+      </div>
 
-              <fieldset class="form-field checks" aria-labelledby="diet-label">
-                <legend id="diet-label">Dietary Info</legend>
-                <label class="checkbox">
-                  <input type="checkbox" id="isVegan" name="isVegan" />
-                  Vegan
-                </label>
-                <label class="checkbox">
-                  <input type="checkbox" id="isGlutenFree" name="isGlutenFree" />
-                  Gluten Free
-                </label>
-                <label class="checkbox">
-                  <input type="checkbox" id="isLactoseFree" name="isLactoseFree" />
-                  Lactose Free
-                </label>
-              </fieldset>
+      <fieldset class="form-field checks" aria-labelledby="diet-label">
+        <legend id="diet-label">Dietary Info</legend>
+        <label class="checkbox">
+          <input type="checkbox" id="isVegan" name="isVegan" />
+          Vegan
+        </label>
+        <label class="checkbox">
+          <input type="checkbox" id="isGlutenFree" name="isGlutenFree" />
+          Gluten Free
+        </label>
+        <label class="checkbox">
+          <input type="checkbox" id="isLactoseFree" name="isLactoseFree" />
+          Lactose Free
+        </label>
+      </fieldset>
 
-              <div class="form-actions">
-                <button type="button" class="btn primary" id="submitIssue">Submit via GitHub</button>
-                <button type="button" class="btn" id="clearForm">Clear Form</button>
-              </div>
-              <small class="help">
-                Submitting opens a GitHub Issue in the friendsgiving repo. The shared list updates automatically.
-              </small>
-            </div>
-          </form>
-        </section>
+      <div class="form-actions">
+        <button type="button" class="btn primary" id="submitIssue">Submit via GitHub</button>
+        <button type="button" class="btn" id="clearForm">Clear Form</button>
+      </div>
+      <small class="help">Submitting opens a GitHub Issue in the friendsgiving repo. The list updates automatically.</small>
+    </div>
+  </form>
+</section>
+
 
         <!-- Filters -->
         <section class="filters card" aria-labelledby="filters-title">
