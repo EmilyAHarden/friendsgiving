@@ -1,13 +1,17 @@
 // script.js — Friendsgiving frontend using GitHub Issues as backend
+// Shared data source: data/dishes.json served via GitHub Pages
+// Submission: opens a prefilled Issue using .github/ISSUE_TEMPLATE/dish.yml
 
 (function () {
   const REMOTE_JSON_URL = 'https://EmilyAHarden.github.io/friendsgiving/data/dishes.json';
   const ISSUE_NEW_URL_BASE = 'https://github.com/EmilyAHarden/friendsgiving/issues/new';
 
+  // Form elements
   const dishForm = document.getElementById('dish-form');
   const submitIssueBtn = document.getElementById('submitIssue');
   const clearFormBtn = document.getElementById('clearForm');
 
+  // List and filters
   const dishListEl = document.getElementById('dishList');
   const emptyStateEl = document.getElementById('emptyState');
 
@@ -17,6 +21,7 @@
   const searchTextEl = document.getElementById('searchText');
   const clearFiltersBtn = document.getElementById('clearFilters');
 
+  // Export dialog (optional)
   const exportBtn = document.getElementById('exportJSON');
   const jsonDialog = document.getElementById('jsonDialog');
   const jsonOutput = document.getElementById('jsonOutput');
@@ -25,18 +30,20 @@
 
   let dishes = [];
 
+  // Boot
   init();
 
   async function init() {
     await fetchRemote();
     renderDishes();
     wireEvents();
-    // periodic refresh from repo
+    // Refresh the list from the repo every minute
     setInterval(fetchAndRender, 60_000);
   }
 
   function wireEvents() {
-    if (submitIssueBtn) {
+    // Submit via GitHub Issue
+    if (submitIssueBtn && dishForm) {
       submitIssueBtn.addEventListener('click', () => {
         const dishName = dishForm.querySelector('#dishName')?.value.trim() || '';
         const yourName = dishForm.querySelector('#yourName')?.value.trim() || '';
@@ -49,7 +56,7 @@
         if (!yourName) errors.push('Guest name is required.');
         if (errors.length) { alert(errors.join('\n')); return; }
 
-        // Prefer template to guarantee format
+        // Build prefilled issue URL using your template dish.yml
         const title = encodeURIComponent(`Dish: ${dishName} — ${yourName}`);
         const body = encodeURIComponent([
           `Dish Name: ${dishName}`,
@@ -58,6 +65,8 @@
           `Gluten Free: ${isGlutenFree ? 'Yes' : 'No'}`,
           `Lactose Free: ${isLactoseFree ? 'Yes' : 'No'}`
         ].join('\n'));
+
+        // If your workflow filters by label "dish", add &labels=dish
         const url = `${ISSUE_NEW_URL_BASE}?template=dish.yml&title=${title}&body=${body}`;
 
         window.open(url, '_blank', 'noopener,noreferrer');
@@ -67,13 +76,15 @@
       });
     }
 
-    if (clearFormBtn) {
+    // Clear form
+    if (clearFormBtn && dishForm) {
       clearFormBtn.addEventListener('click', () => {
         dishForm.reset();
         dishForm.querySelector('#dishName')?.focus();
       });
     }
 
+    // Filters
     [filterVeganEl, filterGFEl, filterLFEl].forEach((el) => el && el.addEventListener('change', renderDishes));
     if (searchTextEl) searchTextEl.addEventListener('input', debounce(renderDishes, 120));
     if (clearFiltersBtn) {
@@ -86,6 +97,7 @@
       });
     }
 
+    // Export JSON dialog
     if (exportBtn && jsonDialog && jsonOutput) {
       exportBtn.addEventListener('click', () => {
         const json = JSON.stringify(dishes, null, 2);
@@ -109,6 +121,7 @@
     }
   }
 
+  // Fetch shared data from GitHub Pages
   async function fetchRemote() {
     try {
       const res = await fetch(REMOTE_JSON_URL, { cache: 'no-store' });
@@ -125,6 +138,7 @@
     renderDishes();
   }
 
+  // Render list with filters
   function renderDishes() {
     if (!dishListEl || !emptyStateEl) return;
 
@@ -181,6 +195,7 @@
     dishListEl.setAttribute('aria-busy', 'false');
   }
 
+  // Utils
   function escapeHTML(str) {
     return String(str)
       .replaceAll('&', '&amp;')
