@@ -1,148 +1,39 @@
-<!DOCTYPE html>
-<html lang="en">
-
-  <head>
-    <meta charset="UTF-8">
-    <title>Friendsgiving</title>
-    <link rel="stylesheet" href="./style.css">
-
-  </head>
-    
-  <body>
-  <!-- Friendsgiving Potluck Sign-Up (HTML panel, no leaves) -->
-
-<div class="page">
-  <header class="hero">
-    <h1>Friendsgiving 2025</h1>
-    <p class="hero-subtitle">Hosted by Emily & Geoff (The Hardens)</p>
-    <div class="event-details">
-      <div class="detail">
-        <span class="label">Date:</span>
-        <span class="value">Saturday, 11/22 at 6:00 PM</span>
+<!-- Dish Sign-Up -->
+<section class="signup card" aria-labelledby="signup-title">
+  <h2 id="signup-title">What are you bringing?</h2>
+  <form id="dish-form" novalidate>
+    <div class="form-grid">
+      <div class="form-field">
+        <label for="dishName">Dish Name</label>
+        <input id="dishName" name="dishName" type="text" placeholder="e.g., Stuffing" required />
       </div>
-      <div class="detail">
-        <span class="label">Location:</span>
-        <span class="value">Emily & Geoff’s place (The Hardens)</span>
+
+      <div class="form-field">
+        <label for="yourName">Guest Name</label>
+        <input id="yourName" name="yourName" type="text" placeholder="e.g., Emily Harden" required />
       </div>
-      <div class="detail">
-        <span class="label">All are welcome!</span>
-        <span class="value">Kids are welcome. BYO drinks if you like — we’ll have some too.</span>
-      </div>
-    </div>
-  </header>
 
-  <main class="content">
-    <section class="intro card" aria-labelledby="intro-title">
-      <h2 id="intro-title">Dish Sign-Up</h2>
-      <p>
-        Add your dish and mark whether it’s Vegan, Gluten-Free, or Lactose-Free so everyone can find options that work for them.
-      </p>
-    </section>
-
-    <!-- Dish Sign-Up -->
-    <section class="signup card" aria-labelledby="signup-title">
-      <h2 id="signup-title">What are you bringing?</h2>
-      <form id="dish-form" novalidate>
-        <div class="form-grid">
-          <div class="form-field">
-            <label for="dishName">Dish Name</label>
-            <input id="dishName" name="dishName" type="text" placeholder="e.g., Stuffing" required />
-            <small class="help">Just the dish name + dietary tags below.</small>
-          </div>
-
-          <div class="form-field">
-            <label for="yourName">Guest Name</label>
-            <input id="yourName" name="yourName" type="text" placeholder="e.g., Emily Harden" required />
-          </div>
-
-          <fieldset class="form-field checks" aria-labelledby="diet-label">
-            <legend id="diet-label">Dietary Info</legend>
-            <label class="checkbox">
-              <input type="checkbox" id="isVegan" name="isVegan" />
-              Vegan
-            </label>
-            <label class="checkbox">
-              <input type="checkbox" id="isGlutenFree" name="isGlutenFree" />
-              Gluten Free
-            </label>
-            <label class="checkbox">
-              <input type="checkbox" id="isLactoseFree" name="isLactoseFree" />
-              Lactose Free
-            </label>
-          </fieldset>
-
-          <div class="form-actions">
-            <button type="submit" class="btn primary">Add Dish</button>
-            <button type="button" class="btn" id="clearForm">Clear Form</button>
-          </div>
-        </div>
-      </form>
-    </section>
-
-    <!-- Filters -->
-    <section class="filters card" aria-labelledby="filters-title">
-      <h2 id="filters-title">Filter Dishes</h2>
-      <div class="filter-grid">
+      <fieldset class="form-field checks" aria-labelledby="diet-label">
+        <legend id="diet-label">Dietary Info</legend>
         <label class="checkbox">
-          <input type="checkbox" id="filterVegan" />
+          <input type="checkbox" id="isVegan" name="isVegan" />
           Vegan
         </label>
         <label class="checkbox">
-          <input type="checkbox" id="filterGF" />
+          <input type="checkbox" id="isGlutenFree" name="isGlutenFree" />
           Gluten Free
         </label>
         <label class="checkbox">
-          <input type="checkbox" id="filterLF" />
+          <input type="checkbox" id="isLactoseFree" name="isLactoseFree" />
           Lactose Free
         </label>
-        <div class="search-field">
-          <label for="searchText">Search</label>
-          <input id="searchText" type="search" placeholder="Search by dish or guest name..." />
-        </div>
-        <button class="btn" id="clearFilters" type="button">Clear Filters</button>
+      </fieldset>
+
+      <div class="form-actions">
+        <button type="button" class="btn primary" id="submitIssue">Submit via GitHub</button>
+        <button type="button" class="btn" id="clearForm">Clear Form</button>
       </div>
-    </section>
-
-    <!-- Dish List -->
-    <section class="list card" aria-labelledby="list-title">
-      <div class="list-header">
-        <h2 id="list-title">Who’s Bringing What</h2>
-        <div class="list-actions">
-          <button class="btn" id="exportJSON" type="button">Export (JSON)</button>
-          <button class="btn danger" id="resetAll" type="button" title="Clears local list for this browser only">Reset My Saved List</button>
-        </div>
-      </div>
-
-      <ul id="dishList" class="dish-list" aria-live="polite" aria-busy="false"></ul>
-      <p id="emptyState" class="empty-state">No sign-ups yet. Be the first!</p>
-    </section>
-
-    <section class="notes card" aria-labelledby="notes-title">
-      <h2 id="notes-title">Notes</h2>
-      <ul class="notes-list">
-        <li>Kids are welcome!</li>
-        <li>Bring your own alcohol if you want — we’ll have some on hand too.</li>
-        <li>Please tag your dish with Vegan, Gluten-Free, or Lactose-Free if applicable.</li>
-        <li>Arrive a little early if your dish needs oven time.</li>
-      </ul>
-    </section>
-  </main>
-
-  <footer class="foot">
-    <p>Friendsgiving 2025 • Saturday 11/22 • 6:00 PM • Emily & Geoff’s place</p>
-  </footer>
-</div>
-
-<dialog id="jsonDialog" aria-labelledby="jsonDialogTitle">
-  <h3 id="jsonDialogTitle">Exported Sign-Up JSON</h3>
-  <textarea id="jsonOutput" readonly rows="10"></textarea>
-  <div class="dialog-actions">
-    <button class="btn" id="copyJSON" type="button">Copy</button>
-    <button class="btn" id="closeJSON" type="button">Close</button>
-  </div>
-</dialog>
-    <script  src="./script.js"></script>
-
-  </body>
-  
-</html>
+      <small class="help">Submitting opens a GitHub Issue in the friendsgiving repo. The list updates automatically.</small>
+    </div>
+  </form>
+</section>
