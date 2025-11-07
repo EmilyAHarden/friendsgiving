@@ -1,172 +1,89 @@
-// script.js — GitHub Issues backend (no leaves)
+// scripts/aggregate.js
+// Reads open issues labeled "dish" and writes data/dishes.json
+// Uses the GITHUB_TOKEN implicit in Actions to call the API when needed.
 
-(function () {
-  const REMOTE_JSON_URL = 'https://EmilyAHarden.github.io/friendsgiving/data/dishes.json';
-  const ISSUE_NEW_URL_BASE = 'https://github.com/EmilyAHarden/friendsgiving/issues/new';
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 
-  const dishForm = document.getElementById('dish-form');
-  const submitIssueBtn = document.getElementById('submitIssue');
-  const clearFormBtn = document.getElementById('clearForm');
+const owner = process.env.REPO_OWNER;
+const repo = process.env.REPO_NAME;
+const token = process.env.GITHUB_TOKEN;
 
-  const dishListEl = document.getElementById('dishList');
-  const emptyStateEl = document.getElementById('emptyState');
+async function main() {
+  const issues = await fetchIssues();
+  const items = issues
+    .filter(i => !i.pull_request) // exclude PRs just in case
+    .filter(i => i.labels.some(l => l.name.toLowerCase() === 'dish'))
+    .map(parseIssueToDish)
+    .filter(Boolean);
 
-  const filterVeganEl = document.getElementById('filterVegan');
-  const filterGFEl = document.getElementById('filterGF');
-  const filterLFEl = document.getElementById('filterLF');
-  const searchTextEl = document.getElementById('searchText');
-  const clearFiltersBtn = document.getElementById('clearFilters');
+  // Sort by created time asc
+  items.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
-  let dishes = [];
+  // Ensure data folder exists
+  if (!existsSync('data')) mkdirSync('data');
 
-  init();
+  const path = 'data/dishes.json';
+  writeFileSync(path, JSON.stringify(items, null, 2));
+  console.log(`Wrote ${items.length} dishes to ${path}`);
+}
 
-  async function init() {
-    await fetchRemote();
-    renderDishes();
-    wireEvents();
+function parseIssueToDish(issue) {
+  // Title format: "Dish: <dish name> — <guest name>"
+  const title = issue.title || '';
+  const titleMatch = title.match(/^Dish:\s*(.+?)\s*—\s*(.+)$/);
+  let dishName = '';
+  let yourName = '';
+
+  if (titleMatch) {
+    dishName = titleMatch[1].trim();
+    yourName = titleMatch[2].trim();
+  } else {
+    // fallback: try to parse from body lines
+    const body = issue.body || '';
+    const dishLine = body.match(/Dish Name:\s*(.+)/i);
+    const guestLine = body.match(/Guest Name:\s*(.+)/i);
+    dishName = dishLine ? dishLine[1].trim() : '';
+    yourName = guestLine ? guestLine[1].trim() : '';
   }
 
-  function wireEvents() {
-    if (submitIssueBtn) {
-      submitIssueBtn.addEventListener('click', () => {
-        const dishName = dishForm.querySelector('#dishName')?.value.trim() || '';
-        const yourName = dishForm.querySelector('#yourName')?.value.trim() || '';
-        const isVegan = dishForm.querySelector('#isVegan')?.checked || false;
-        const isGlutenFree = dishForm.querySelector('#isGlutenFree')?.checked || false;
-        const isLactoseFree = dishForm.querySelector('#isLactoseFree')?.checked || false;
+  if (!dishName || !yourName) {
+    return null;
+  }
 
-        const errors = [];
-        if (!dishName) errors.push('Dish name is required.');
-        if (!yourName) errors.push('Guest name is required.');
-        if (errors.length) { alert(errors.join('\n')); return; }
+  const body = issue.body || '';
+  const isVegan = /Vegan:\s*(Yes|True)/i.test(body);
+  const isGlutenFree = /Gluten Free:\s*(Yes|True)/i.test(body);
+  const isLactoseFree = /Lactose Free:\s*(Yes|True)/i.test(body);
 
-        // Prefill issue title and body. We’ll target the dish issue template via labels.
-        const title = encodeURIComponent(`Dish: ${dishName} — ${yourName}`);
-        const body = encodeURIComponent([
-          `Dish Name: ${dishName}`,
-          `Guest Name: ${yourName}`,
-          `Vegan: ${isVegan ? 'Yes' : 'No'}`,
-          `Gluten Free: ${isGlutenFree ? 'Yes' : 'No'}`,
-          `Lactose Free: ${isLactoseFree ? 'Yes' : 'No'}`,
-        ].join('\n'));
+  return {
+    id: `issue_${issue.number}`,
+    dishName,
+    yourName,
+    isVegan,
+    isGlutenFree,
+    isLactoseFree,
+    createdAt: issue.created_at
+  };
+}
 
-        // Optional: pre-apply a label the workflow recognizes, e.g. "dish"
-        const url = `${ISSUE_NEW_URL_BASE}?title=${title}&body=${body}&labels=${encodeURIComponent('dish')}`;
-
-        window.open(url, '_blank', 'noopener,noreferrer');
-
-        // Clear after opening
-        dishForm.reset();
-        dishForm.querySelector('#dishName')?.focus();
-      });
+async function fetchIssues(page = 1, acc = []) {
+  const url = `https://api.github.com/repos/${owner}/${repo}/issues?state=open&per_page=100&page=${page}`;
+  const res = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/vnd.github+json'
     }
-
-    if (clearFormBtn) {
-      clearFormBtn.addEventListener('click', () => {
-        dishForm.reset();
-        dishForm.querySelector('#dishName')?.focus();
-      });
-    }
-
-    [filterVeganEl, filterGFEl, filterLFEl].forEach((el) => el && el.addEventListener('change', renderDishes));
-    if (searchTextEl) searchTextEl.addEventListener('input', debounce(renderDishes, 120));
-    if (clearFiltersBtn) {
-      clearFiltersBtn.addEventListener('click', () => {
-        if (filterVeganEl) filterVeganEl.checked = false;
-        if (filterGFEl) filterGFEl.checked = false;
-        if (filterLFEl) filterLFEl.checked = false;
-        if (searchTextEl) searchTextEl.value = '';
-        renderDishes();
-      });
-    }
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Failed to fetch issues: ${res.status} ${text}`);
   }
-
-  async function fetchRemote() {
-    try {
-      const res = await fetch(REMOTE_JSON_URL, { cache: 'no-store' });
-      if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
-      const data = await res.json();
-      dishes = Array.isArray(data) ? data : [];
-    } catch (e) {
-      dishes = [];
-    }
+  const batch = await res.json();
+  const nextAcc = acc.concat(batch);
+  if (batch.length === 100) {
+    return fetchIssues(page + 1, nextAcc);
   }
+  return nextAcc;
+}
 
-  async function refreshFromRepo() {
-    await fetchRemote();
-    renderDishes();
-  }
-
-  function renderDishes() {
-    if (!dishListEl || !emptyStateEl) return;
-
-    const onlyVegan = !!filterVeganEl?.checked;
-    const onlyGF = !!filterGFEl?.checked;
-    const onlyLF = !!filterLFEl?.checked;
-    const q = (searchTextEl?.value || '').trim().toLowerCase();
-
-    const filtered = dishes.filter((d) => {
-      if (onlyVegan && !d.isVegan) return false;
-      if (onlyGF && !d.isGlutenFree) return false;
-      if (onlyLF && !d.isLactoseFree) return false;
-
-      if (q) {
-        const hay = [d.dishName, d.yourName, d.isVegan ? 'vegan' : '', d.isGlutenFree ? 'gluten free' : '', d.isLactoseFree ? 'lactose free' : '']
-          .join(' ')
-          .toLowerCase();
-        if (!hay.includes(q)) return false;
-      }
-      return true;
-    });
-
-    dishListEl.innerHTML = '';
-    dishListEl.setAttribute('aria-busy', 'true');
-
-    if (filtered.length === 0) {
-      emptyStateEl.style.display = 'block';
-    } else {
-      emptyStateEl.style.display = 'none';
-      filtered
-        .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
-        .forEach((d) => {
-          const li = document.createElement('li');
-          li.className = 'dish-card';
-          li.innerHTML = `
-            <div>
-              <h3 class="dish-title">${escapeHTML(d.dishName)}</h3>
-              <div class="dish-meta">by ${escapeHTML(d.yourName)}</div>
-              <div class="tag-row">
-                ${d.isVegan ? '<span class="tag vegan">Vegan</span>' : ''}
-                ${d.isGlutenFree ? '<span class="tag gf">Gluten Free</span>' : ''}
-                ${d.isLactoseFree ? '<span class="tag lf">Lactose Free</span>' : ''}
-              </div>
-            </div>
-          `;
-          dishListEl.appendChild(li);
-        });
-    }
-
-    dishListEl.setAttribute('aria-busy', 'false');
-  }
-
-  function escapeHTML(str) {
-    return String(str)
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;')
-      .replaceAll("'", '&#039;');
-  }
-
-  function debounce(fn, wait = 200) {
-    let t;
-    return function (...args) {
-      clearTimeout(t);
-      t = setTimeout(() => fn.apply(this, args), wait);
-    };
-  }
-
-  // Optional: periodically refresh the list from the repo
-  setInterval(() => { refreshFromRepo(); }, 60_000);
-})();
+await main();
