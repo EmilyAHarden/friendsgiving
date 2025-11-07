@@ -1,0 +1,31 @@
+name: Dish sign-up
+description: Add a dish to Friendsgiving
+title: "Dish: <dish name> — <guest name>"
+labels: ["dish"]
+body:
+  - type: input
+    id: dish_name
+    attributes:
+      label: Dish Name
+      placeholder: e.g., Stuffing
+    validations:
+      required: true
+  - type: input
+    id: guest_name
+    attributes:
+      label: Guest Name
+      placeholder: e.g., Emily Harden
+    validations:
+      required: true
+  - type: checkboxes
+    id: dietary
+    attributes:
+      label: Dietary Info
+      options:
+        - label: Vegan
+        - label: Gluten Free
+        - label: Lactose Free
+  - type: markdown
+    attributes:
+      value: |
+        Thanks! The list will update shortly after you submit.
