@@ -1,39 +1,91 @@
-<!-- Dish Sign-Up -->
-<section class="signup card" aria-labelledby="signup-title">
-  <h2 id="signup-title">What are you bringing?</h2>
-  <form id="dish-form" novalidate>
-    <div class="form-grid">
-      <div class="form-field">
-        <label for="dishName">Dish Name</label>
-        <input id="dishName" name="dishName" type="text" placeholder="e.g., Stuffing" required />
-      </div>
+<!-- index.html -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Friendsgiving 2025 — The Hardens</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link href="style.css" rel="stylesheet" />
+  </head>
+  <body>
+    <div class="page">
+      <header class="hero">
+        <h1>Friendsgiving 2025</h1>
+        <p class="hero-subtitle">Hosted by Emily & Geoff (The Hardens)</p>
+        <div class="event-details">
+          <div class="detail">
+            <span class="label">Date:</span>
+            <span class="value">Saturday, 11/22 at 6:00 PM</span>
+          </div>
+          <div class="detail">
+            <span class="label">Location:</span>
+            <span class="value">Emily & Geoff’s place (The Hardens)</span>
+          </div>
+          <div class="detail">
+            <span class="label">All are welcome!</span>
+            <span class="value">Kids are welcome. BYO drinks if you like — we’ll have some too.</span>
+          </div>
+        </div>
+      </header>
 
-      <div class="form-field">
-        <label for="yourName">Guest Name</label>
-        <input id="yourName" name="yourName" type="text" placeholder="e.g., Emily Harden" required />
-      </div>
+      <main class="content">
+        <section class="intro card" aria-labelledby="intro-title">
+          <h2 id="intro-title">Dish Sign-Up</h2>
+          <p>
+            Add your dish and mark whether it’s Vegan, Gluten-Free, or Lactose-Free so everyone can find options that work for them.
+          </p>
+        </section>
 
-      <fieldset class="form-field checks" aria-labelledby="diet-label">
-        <legend id="diet-label">Dietary Info</legend>
-        <label class="checkbox">
-          <input type="checkbox" id="isVegan" name="isVegan" />
-          Vegan
-        </label>
-        <label class="checkbox">
-          <input type="checkbox" id="isGlutenFree" name="isGlutenFree" />
-          Gluten Free
-        </label>
-        <label class="checkbox">
-          <input type="checkbox" id="isLactoseFree" name="isLactoseFree" />
-          Lactose Free
-        </label>
-      </fieldset>
+        <!-- Dish Sign-Up -->
+        <section class="signup card" aria-labelledby="signup-title">
+          <h2 id="signup-title">What are you bringing?</h2>
+          <form id="dish-form" novalidate>
+            <div class="form-grid">
+              <div class="form-field">
+                <label for="dishName">Dish Name</label>
+                <input id="dishName" name="dishName" type="text" placeholder="e.g., Stuffing" required />
+                <small class="help">Just the dish name + dietary tags below.</small>
+              </div>
 
-      <div class="form-actions">
-        <button type="button" class="btn primary" id="submitIssue">Submit via GitHub</button>
-        <button type="button" class="btn" id="clearForm">Clear Form</button>
-      </div>
-      <small class="help">Submitting opens a GitHub Issue in the friendsgiving repo. The list updates automatically.</small>
-    </div>
-  </form>
-</section>
+              <div class="form-field">
+                <label for="yourName">Guest Name</label>
+                <input id="yourName" name="yourName" type="text" placeholder="e.g., Emily Harden" required />
+              </div>
+
+              <fieldset class="form-field checks" aria-labelledby="diet-label">
+                <legend id="diet-label">Dietary Info</legend>
+                <label class="checkbox">
+                  <input type="checkbox" id="isVegan" name="isVegan" />
+                  Vegan
+                </label>
+                <label class="checkbox">
+                  <input type="checkbox" id="isGlutenFree" name="isGlutenFree" />
+                  Gluten Free
+                </label>
+                <label class="checkbox">
+                  <input type="checkbox" id="isLactoseFree" name="isLactoseFree" />
+                  Lactose Free
+                </label>
+              </fieldset>
+
+              <div class="form-actions">
+                <button type="button" class="btn primary" id="submitIssue">Submit via GitHub</button>
+                <button type="button" class="btn" id="clearForm">Clear Form</button>
+              </div>
+              <small class="help">
+                Submitting opens a GitHub Issue in the friendsgiving repo. The shared list updates automatically.
+              </small>
+            </div>
+          </form>
+        </section>
+
+        <!-- Filters -->
+        <section class="filters card" aria-labelledby="filters-title">
+          <h2 id="filters-title">Filter Dishes</h2>
+          <div class="filter-grid">
+            <label class="checkbox">
+              <input type="checkbox" id="filterVegan" />
+              Vegan
+            </label>
+            <label class="checkbox">
+              
