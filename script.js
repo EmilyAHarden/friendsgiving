@@ -1,89 +1,200 @@
-// scripts/aggregate.js
-// Reads open issues labeled "dish" and writes data/dishes.json
-// Uses the GITHUB_TOKEN implicit in Actions to call the API when needed.
+// script.js — Friendsgiving frontend using GitHub Issues as backend
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
+(function () {
+  const REMOTE_JSON_URL = 'https://EmilyAHarden.github.io/friendsgiving/data/dishes.json';
+  const ISSUE_NEW_URL_BASE = 'https://github.com/EmilyAHarden/friendsgiving/issues/new';
 
-const owner = process.env.REPO_OWNER;
-const repo = process.env.REPO_NAME;
-const token = process.env.GITHUB_TOKEN;
+  const dishForm = document.getElementById('dish-form');
+  const submitIssueBtn = document.getElementById('submitIssue');
+  const clearFormBtn = document.getElementById('clearForm');
 
-async function main() {
-  const issues = await fetchIssues();
-  const items = issues
-    .filter(i => !i.pull_request) // exclude PRs just in case
-    .filter(i => i.labels.some(l => l.name.toLowerCase() === 'dish'))
-    .map(parseIssueToDish)
-    .filter(Boolean);
+  const dishListEl = document.getElementById('dishList');
+  const emptyStateEl = document.getElementById('emptyState');
 
-  // Sort by created time asc
-  items.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+  const filterVeganEl = document.getElementById('filterVegan');
+  const filterGFEl = document.getElementById('filterGF');
+  const filterLFEl = document.getElementById('filterLF');
+  const searchTextEl = document.getElementById('searchText');
+  const clearFiltersBtn = document.getElementById('clearFilters');
 
-  // Ensure data folder exists
-  if (!existsSync('data')) mkdirSync('data');
+  const exportBtn = document.getElementById('exportJSON');
+  const jsonDialog = document.getElementById('jsonDialog');
+  const jsonOutput = document.getElementById('jsonOutput');
+  const copyJSONBtn = document.getElementById('copyJSON');
+  const closeJSONBtn = document.getElementById('closeJSON');
 
-  const path = 'data/dishes.json';
-  writeFileSync(path, JSON.stringify(items, null, 2));
-  console.log(`Wrote ${items.length} dishes to ${path}`);
-}
+  let dishes = [];
 
-function parseIssueToDish(issue) {
-  // Title format: "Dish: <dish name> — <guest name>"
-  const title = issue.title || '';
-  const titleMatch = title.match(/^Dish:\s*(.+?)\s*—\s*(.+)$/);
-  let dishName = '';
-  let yourName = '';
+  init();
 
-  if (titleMatch) {
-    dishName = titleMatch[1].trim();
-    yourName = titleMatch[2].trim();
-  } else {
-    // fallback: try to parse from body lines
-    const body = issue.body || '';
-    const dishLine = body.match(/Dish Name:\s*(.+)/i);
-    const guestLine = body.match(/Guest Name:\s*(.+)/i);
-    dishName = dishLine ? dishLine[1].trim() : '';
-    yourName = guestLine ? guestLine[1].trim() : '';
+  async function init() {
+    await fetchRemote();
+    renderDishes();
+    wireEvents();
+    // periodic refresh from repo
+    setInterval(fetchAndRender, 60_000);
   }
 
-  if (!dishName || !yourName) {
-    return null;
-  }
+  function wireEvents() {
+    if (submitIssueBtn) {
+      submitIssueBtn.addEventListener('click', () => {
+        const dishName = dishForm.querySelector('#dishName')?.value.trim() || '';
+        const yourName = dishForm.querySelector('#yourName')?.value.trim() || '';
+        const isVegan = dishForm.querySelector('#isVegan')?.checked || false;
+        const isGlutenFree = dishForm.querySelector('#isGlutenFree')?.checked || false;
+        const isLactoseFree = dishForm.querySelector('#isLactoseFree')?.checked || false;
 
-  const body = issue.body || '';
-  const isVegan = /Vegan:\s*(Yes|True)/i.test(body);
-  const isGlutenFree = /Gluten Free:\s*(Yes|True)/i.test(body);
-  const isLactoseFree = /Lactose Free:\s*(Yes|True)/i.test(body);
+        const errors = [];
+        if (!dishName) errors.push('Dish name is required.');
+        if (!yourName) errors.push('Guest name is required.');
+        if (errors.length) { alert(errors.join('\n')); return; }
 
-  return {
-    id: `issue_${issue.number}`,
-    dishName,
-    yourName,
-    isVegan,
-    isGlutenFree,
-    isLactoseFree,
-    createdAt: issue.created_at
-  };
-}
+        // Prefer template to guarantee format
+        const title = encodeURIComponent(`Dish: ${dishName} — ${yourName}`);
+        const body = encodeURIComponent([
+          `Dish Name: ${dishName}`,
+          `Guest Name: ${yourName}`,
+          `Vegan: ${isVegan ? 'Yes' : 'No'}`,
+          `Gluten Free: ${isGlutenFree ? 'Yes' : 'No'}`,
+          `Lactose Free: ${isLactoseFree ? 'Yes' : 'No'}`
+        ].join('\n'));
+        const url = `${ISSUE_NEW_URL_BASE}?template=dish.yml&title=${title}&body=${body}`;
 
-async function fetchIssues(page = 1, acc = []) {
-  const url = `https://api.github.com/repos/${owner}/${repo}/issues?state=open&per_page=100&page=${page}`;
-  const res = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: 'application/vnd.github+json'
+        window.open(url, '_blank', 'noopener,noreferrer');
+
+        dishForm.reset();
+        dishForm.querySelector('#dishName')?.focus();
+      });
     }
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Failed to fetch issues: ${res.status} ${text}`);
-  }
-  const batch = await res.json();
-  const nextAcc = acc.concat(batch);
-  if (batch.length === 100) {
-    return fetchIssues(page + 1, nextAcc);
-  }
-  return nextAcc;
-}
 
-await main();
+    if (clearFormBtn) {
+      clearFormBtn.addEventListener('click', () => {
+        dishForm.reset();
+        dishForm.querySelector('#dishName')?.focus();
+      });
+    }
+
+    [filterVeganEl, filterGFEl, filterLFEl].forEach((el) => el && el.addEventListener('change', renderDishes));
+    if (searchTextEl) searchTextEl.addEventListener('input', debounce(renderDishes, 120));
+    if (clearFiltersBtn) {
+      clearFiltersBtn.addEventListener('click', () => {
+        if (filterVeganEl) filterVeganEl.checked = false;
+        if (filterGFEl) filterGFEl.checked = false;
+        if (filterLFEl) filterLFEl.checked = false;
+        if (searchTextEl) searchTextEl.value = '';
+        renderDishes();
+      });
+    }
+
+    if (exportBtn && jsonDialog && jsonOutput) {
+      exportBtn.addEventListener('click', () => {
+        const json = JSON.stringify(dishes, null, 2);
+        jsonOutput.value = json;
+        jsonDialog.showModal();
+      });
+    }
+    if (copyJSONBtn && jsonOutput) {
+      copyJSONBtn.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(jsonOutput.value);
+          copyJSONBtn.textContent = 'Copied!';
+          setTimeout(() => (copyJSONBtn.textContent = 'Copy'), 1200);
+        } catch {
+          alert('Copy failed. You can select and copy manually.');
+        }
+      });
+    }
+    if (closeJSONBtn && jsonDialog) {
+      closeJSONBtn.addEventListener('click', () => jsonDialog.close());
+    }
+  }
+
+  async function fetchRemote() {
+    try {
+      const res = await fetch(REMOTE_JSON_URL, { cache: 'no-store' });
+      if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
+      const data = await res.json();
+      dishes = Array.isArray(data) ? data : [];
+    } catch {
+      dishes = [];
+    }
+  }
+
+  async function fetchAndRender() {
+    await fetchRemote();
+    renderDishes();
+  }
+
+  function renderDishes() {
+    if (!dishListEl || !emptyStateEl) return;
+
+    const onlyVegan = !!filterVeganEl?.checked;
+    const onlyGF = !!filterGFEl?.checked;
+    const onlyLF = !!filterLFEl?.checked;
+    const q = (searchTextEl?.value || '').trim().toLowerCase();
+
+    const filtered = dishes.filter((d) => {
+      if (onlyVegan && !d.isVegan) return false;
+      if (onlyGF && !d.isGlutenFree) return false;
+      if (onlyLF && !d.isLactoseFree) return false;
+
+      if (q) {
+        const hay = [
+          d.dishName,
+          d.yourName,
+          d.isVegan ? 'vegan' : '',
+          d.isGlutenFree ? 'gluten free' : '',
+          d.isLactoseFree ? 'lactose free' : ''
+        ].join(' ').toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+
+    dishListEl.innerHTML = '';
+    dishListEl.setAttribute('aria-busy', 'true');
+
+    if (filtered.length === 0) {
+      emptyStateEl.style.display = 'block';
+    } else {
+      emptyStateEl.style.display = 'none';
+      filtered
+        .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+        .forEach((d) => {
+          const li = document.createElement('li');
+          li.className = 'dish-card';
+          li.innerHTML = `
+            <div>
+              <h3 class="dish-title">${escapeHTML(d.dishName)}</h3>
+              <div class="dish-meta">by ${escapeHTML(d.yourName)}</div>
+              <div class="tag-row">
+                ${d.isVegan ? '<span class="tag vegan">Vegan</span>' : ''}
+                ${d.isGlutenFree ? '<span class="tag gf">Gluten Free</span>' : ''}
+                ${d.isLactoseFree ? '<span class="tag lf">Lactose Free</span>' : ''}
+              </div>
+            </div>
+          `;
+          dishListEl.appendChild(li);
+        });
+    }
+
+    dishListEl.setAttribute('aria-busy', 'false');
+  }
+
+  function escapeHTML(str) {
+    return String(str)
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
+
+  function debounce(fn, wait = 200) {
+    let t;
+    return function (...args) {
+      clearTimeout(t);
+      t = setTimeout(() => fn.apply(this, args), wait);
+    };
+  }
+})();
